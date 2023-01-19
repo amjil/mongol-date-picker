@@ -13,8 +13,7 @@
    :margin (m.EdgeInsets/all 4)
    :selected-text-style (m/TextStyle
                          .fontSize 16
-                         .fontWeight (.w700 m/FontWeight)
-                         .color m.Colors/blue)
+                         .fontWeight (.w700 m/FontWeight))
    :text-style (m/TextStyle
                 .fontSize 14
                 .fontWeight (.normal m/FontWeight))})

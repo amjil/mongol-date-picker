@@ -124,10 +124,12 @@
                             (.withOpacity 0.7))]))))
            (m/Container
             .width 30.0
+            .height 280.0
             .decoration
-            (m/BoxDecoration .color (-> m/Colors
-                                        .grey
-                                        (.withOpacity 0.15))
+            (m/BoxDecoration .color
+                             (-> m/Colors
+                                 .grey
+                                 (.withOpacity 0.50))
                              .borderRadius
                              (.all m/BorderRadius (.circular m/Radius 4))))
            (m/Expanded
