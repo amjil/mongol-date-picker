@@ -1,0 +1,38 @@
+(ns mongol-date-picker.main
+  (:require ["package:flutter/material.dart" :as m]
+            [cljd.flutter.alpha2 :as f]
+            [mongol-date-picker.date-scroll-view :as date-scroll-view]
+            [mongol-date-picker.util.month-dates :as month-date]))
+
+
+(defn main []
+  (let [now (DateTime/now)
+        year (.-year now)
+        month (.-month now)
+        day (.-day now)
+        years (range 1900 (inc (.-year now)))]
+    (m/runApp
+     (f/widget
+      :get [m/Theme]
+      :bind  {:state (atom {:selected-date now
+                            :year (dec (count years))
+                            :month (dec month)
+                            :day (dec day)
+                            :years years
+                            :months (range 1 13)
+                            :days (range 1 (inc (month-date/dates year month)))})}
+      (m/MaterialApp
+       .title "Welcome to Flutter"
+       .theme (m/ThemeData .primarySwatch m.Colors/blue
+                           .fontFamily "MongolianBaiZheng")
+       .home (m/Scaffold
+              .appBar (m/AppBar
+                       .title (m/Text "Scroll Date Picker Example"))
+              .body
+              (m/Center
+              ;;  .child (m/Text (str (.-year now))
+              ;;                 .style (m/TextStyle
+              ;;                         .color m.Colors/blue
+              ;;                         .fontSize 32.0))))
+               .child (date-scroll-view/date-view)))
+       .debugShowCheckedModeBanner false)))))

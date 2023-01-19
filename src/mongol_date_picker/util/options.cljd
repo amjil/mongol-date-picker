@@ -1,0 +1,20 @@
+(ns mongol-date-picker.util.options
+  (:require ["package:flutter/material.dart" :as m]))
+
+(def date-picker-options
+  {:item-extent 30.0
+   :diameter-ratio 3
+   :perspective 0.01
+   :loop? true})
+
+(def scroll-view-detail-options
+  {:label ""
+   :alignment (.centerLeft m/Alignment)
+   :margin (m.EdgeInsets/all 4)
+   :selected-text-style (m/TextStyle
+                         .fontSize 16
+                         .fontWeight (.w700 m/FontWeight)
+                         .color m.Colors/blue)
+   :text-style (m/TextStyle
+                .fontSize 14
+                .fontWeight (.normal m/FontWeight))})
