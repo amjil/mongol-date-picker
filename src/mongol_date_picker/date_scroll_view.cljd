@@ -83,7 +83,8 @@
                                    (nth (:months @state) (:month @state)))]
                          (swap! state assoc :days (range 1 (inc days)))
                          (if (> (:day @state) (dec days))
-                           (swap! state assoc :day (dec days)))))
+                           (swap! state assoc :day (dec days)))
+                         (.jumpToItem day-controller (:day @state))))
          on-year-changed (fn [i]
                            (swap! state assoc :year i)
                            (update-days))
@@ -142,7 +143,7 @@
                             (.withOpacity 0.7))]))))
            (m/Container
             .width 30.0
-            ;; .height 280.0
+            .height (-> m/MediaQuery (.of ctx) .-size .-width)
             .decoration
             (m/BoxDecoration .color
                              (-> m/Colors
