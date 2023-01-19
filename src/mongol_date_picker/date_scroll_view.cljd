@@ -126,7 +126,7 @@
           [(m/Expanded
             .child
             (m/Container
-             .height 300
+             .height (-> m/MediaQuery (.of ctx) .-size .-width)
              .decoration
              (m/BoxDecoration
               .gradient
@@ -142,7 +142,7 @@
                             (.withOpacity 0.7))]))))
            (m/Container
             .width 30.0
-            .height 280.0
+            ;; .height 280.0
             .decoration
             (m/BoxDecoration .color
                              (-> m/Colors
@@ -153,7 +153,7 @@
            (m/Expanded
             .child
             (m/Container
-             .height 300
+             .height (-> m/MediaQuery (.of ctx) .-size .-width)
              .decoration
              (m/BoxDecoration
               .gradient
