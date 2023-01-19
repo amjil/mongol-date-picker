@@ -34,13 +34,10 @@
    :get [:state]
    :watch [{:keys [year month day]} state]
    :context ctx
-   :let [muximum-count (quot (-> m/MediaQuery (.of ctx) .-size .-width) 
+   :let [muximum-count (quot (-> m/MediaQuery (.of ctx) .-size .-width)
                              (:item-extent options/date-picker-options))
-         loop? (and (:loop? options/date-picker-options) 
-                    (> (count scroll-values) muximum-count))
-         child-list-delegate-fn (if loop?
-                                  m/ListWheelChildLoopingListDelegate
-                                  m/ListWheelChildListDelegate)]
+         loop? (and (:loop? options/date-picker-options)
+                    (> (count scroll-values) muximum-count))]
    (m/Container
     .margin (:margin options/scroll-view-detail-options)
     .height 80
@@ -61,7 +58,7 @@
         (m/ListWheelChildLoopingListDelegate
          .children
          (for [x scroll-values]
-            (date-scroll-item label date-type x)))
+           (date-scroll-item label date-type x)))
 
         (m/ListWheelChildListDelegate
          .children
@@ -99,8 +96,8 @@
     (m/Column
      .children
      [(mgl/MongolText (str (nth (:years @state) (:year @state)) "-" 
-                           (nth (:months @state) (:month @state)) "-"
-                           (nth (:days @state) (:day @state))))
+                           (if (> 9 (:month @state)) "0") (nth (:months @state) (:month @state)) "-"
+                           (if (> 9 (:day @state)) "0") (nth (:days @state) (:day @state))))
       (m/Stack
        .alignment m.Alignment/center
        .children
