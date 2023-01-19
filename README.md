@@ -20,5 +20,6 @@ samples, guidance on mobile development, and a full API reference.
 ## Run Example
 1. Install the clj command.
 2. Init the example `clj -M:cljd init`
-3. Open a simulator `open -a Simulator`
-4. Run flutter `clj -M:cljd flutter`
+3. Copy pubspec.yaml.bak to pubspec.yaml `cp pubspec.yaml.bak pubspec.yaml`
+4. Open a simulator `open -a Simulator`
+5. Run flutter `clj -M:cljd flutter`
