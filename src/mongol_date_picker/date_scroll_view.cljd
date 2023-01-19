@@ -29,12 +29,22 @@
                (:selected-text-style options/scroll-view-detail-options)
                (:text-style options/scroll-view-detail-options)))))))
 
-(defn date-scroll-view [date-type label scroll-values controller on-changed-fn]
+(defn date-scroll-view [label date-type]
   (f/widget
-   :get [:state]
+   :get [:state 
+         :year-controller 
+         :month-controller
+         :day-controller 
+         :on-year-changed 
+         :on-month-changed
+         :on-day-changed]
    :watch [{:keys [year month day]} state]
    :context ctx
-   :let [muximum-count (quot (-> m/MediaQuery (.of ctx) .-size .-width)
+   :let [scroll-values (condp = date-type
+                         :year (:years @state)
+                         :month (:months @state)
+                         :day (:days @state))
+         muximum-count (quot (-> m/MediaQuery (.of ctx) .-size .-width)
                              (:item-extent options/date-picker-options))
          loop? (and (:loop? options/date-picker-options)
                     (> (count scroll-values) muximum-count))]
@@ -49,10 +59,20 @@
       m/ListWheelScrollView
       .itemExtent (:item-extent options/date-picker-options)
       .diameterRatio (:diameter-ratio options/date-picker-options)
-      .controller controller
+      .controller (condp = date-type
+                    :year year-controller
+                    :month month-controller
+                    :day day-controller
+                    ;;default
+                    year-controller)
       .physics (m/FixedExtentScrollPhysics)
       .perspective (:perspective options/date-picker-options)
-      .onSelectedItemChanged on-changed-fn
+      .onSelectedItemChanged (condp = date-type
+                               :year on-year-changed
+                               :month on-month-changed
+                               :day on-day-changed
+                               ;;default
+                               on-day-changed)
       .childDelegate
       (if loop?
         (m/ListWheelChildLoopingListDelegate
@@ -67,36 +87,30 @@
 
 (defn date-view []
   (f/widget
-   :get [:state m/Theme m/ScaffoldMessenger]
+   :get [:state m/Theme m/ScaffoldMessenger
+         :day-controller]
    :context ctx
    :watch [{:keys [selected-date year month day days]} state]
-   :let [year-controller (m/FixedExtentScrollController .initialItem year)
-         month-controller (m/FixedExtentScrollController .initialItem month)
-         day-controller (m/FixedExtentScrollController .initialItem day)
-         update-days (fn []
-                      ;;  (.showSnackBar
-                      ;;   scaffold-messenger
-                      ;;   (m/SnackBar
-                      ;;    .content (m/Text (str "Yay! A SnackBar!" (nth (:years @state) (:year @state))))))
+   :let [update-days (fn []
                        (let [days (month-dates/dates
                                    (nth (:years @state) (:year @state))
                                    (nth (:months @state) (:month @state)))]
                          (swap! state assoc :days (range 1 (inc days)))
-                         (if (> (:day @state) (dec days))
-                           (swap! state assoc :day (dec days)))
-                         (.jumpToItem day-controller (:day @state))))
-         on-year-changed (fn [i]
-                           (swap! state assoc :year i)
-                           (update-days))
-         on-month-changed (fn [i]
-                            (swap! state assoc :month i)
-                            (update-days))
-         on-day-changed (fn [i] (swap! state assoc :day i))]
+                         (when (> (:day @state) (dec days))
+                           (swap! state assoc :day (dec days))
+                           (.jumpToItem day-controller (dec days)))))]
+   :bind {:on-year-changed (fn [i]
+                             (swap! state assoc :year i)
+                             (update-days))
+          :on-month-changed (fn [i]
+                              (swap! state assoc :month i)
+                              (update-days))
+          :on-day-changed (fn [i] (swap! state assoc :day i))}
    (m/Center
     .child
     (m/Column
      .children
-     [(mgl/MongolText (str (nth (:years @state) (:year @state)) "-" 
+     [(mgl/MongolText (str (nth (:years @state) (:year @state)) "-"
                            (if (> 9 (:month @state)) "0") (nth (:months @state) (:month @state)) "-"
                            (if (> 9 (:day @state)) "0") (nth (:days @state) (:day @state))))
       (m/Stack
@@ -105,20 +119,14 @@
        [(m/Column
          .children
          [(date-scroll-view
-           :year
-           constants/year-suffix (range 1900 2024)
-           year-controller
-           on-year-changed)
+           constants/year-suffix
+           :year)
           (date-scroll-view
-           :month
-           constants/month-suffix (range 1 13)
-           month-controller
-           on-month-changed)
+           constants/month-suffix
+           :month)
           (date-scroll-view
-           :day
-           "" days
-           day-controller
-           on-day-changed)])
+           ""
+           :day)])
         (m/IgnorePointer
          .child
          (m/Row
@@ -148,7 +156,7 @@
             (m/BoxDecoration .color
                              (-> m/Colors
                                  .grey
-                                 (.withOpacity 0.50))
+                                 (.withOpacity 0.15))
                              .borderRadius
                              (.all m/BorderRadius (.circular m/Radius 4))))
            (m/Expanded
@@ -167,5 +175,4 @@
                             (.withOpacity 0.7))
                         (-> m/Theme
                             (.of ctx)
-                            .-scaffoldBackgroundColor)]))))]))])
-      ]))))
+                            .-scaffoldBackgroundColor)]))))]))])]))))

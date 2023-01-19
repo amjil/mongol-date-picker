@@ -20,7 +20,10 @@
                             :day (dec day)
                             :years years
                             :months (range 1 13)
-                            :days (range 1 (inc (month-date/dates year month)))})}
+                            :days (range 1 (inc (month-date/dates year month)))})
+              :year-controller (m/FixedExtentScrollController .initialItem (dec (count years)))
+              :month-controller (m/FixedExtentScrollController .initialItem (dec month))
+              :day-controller (m/FixedExtentScrollController .initialItem (dec day))}
       (m/MaterialApp
        .title "Welcome to Flutter"
        .theme (m/ThemeData .primarySwatch m.Colors/blue
