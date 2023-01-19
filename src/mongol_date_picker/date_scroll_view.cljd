@@ -7,10 +7,40 @@
             [mongol-date-picker.util.month-dates :as month-dates]
             [mongol-date-picker.date-scroll-view :as date-scroll-view]))
 
+
+(defn date-scroll-item [label date-type x]
+  (f/widget
+   :get [:state]
+   :watch [{:keys [year month day]} state]
+   (m/Container
+    .alignment (:alignment options/scroll-view-detail-options)
+    .child
+    (m/RotatedBox
+     .quarterTurns 1
+     .child
+     (mgl/MongolText
+      (str x label)
+      .style (if
+              (condp = date-type
+                :year (= (nth (:years @state) year) x)
+                :month (= (nth (:months @state) month) x)
+                :day (= (nth (:days @state) day) x)
+                false)
+               (:selected-text-style options/scroll-view-detail-options)
+               (:text-style options/scroll-view-detail-options)))))))
+
 (defn date-scroll-view [date-type label scroll-values controller on-changed-fn]
   (f/widget
    :get [:state]
    :watch [{:keys [year month day]} state]
+   :context ctx
+   :let [muximum-count (quot (-> m/MediaQuery (.of ctx) .-size .-width) 
+                             (:item-extent options/date-picker-options))
+         loop? (and (:loop? options/date-picker-options) 
+                    (> (count scroll-values) muximum-count))
+         child-list-delegate-fn (if loop?
+                                  m/ListWheelChildLoopingListDelegate
+                                  m/ListWheelChildListDelegate)]
    (m/Container
     .margin (:margin options/scroll-view-detail-options)
     .height 80
@@ -27,25 +57,16 @@
       .perspective (:perspective options/date-picker-options)
       .onSelectedItemChanged on-changed-fn
       .childDelegate
-      (m/ListWheelChildListDelegate
-       .children
-       (for [x scroll-values]
-         (m/Container
-          .alignment (:alignment options/scroll-view-detail-options)
-          .child
-          (m/RotatedBox
-           .quarterTurns 1
-           .child
-           (mgl/MongolText
-            (str x label)
-            .style (if
-                    (condp = date-type
-                      :year (= (nth (:years @state) year) x)
-                      :month (= (nth (:months @state) month) x)
-                      :day (= (nth (:days @state) day) x)
-                      false)
-                     (:selected-text-style options/scroll-view-detail-options)
-                     (:text-style options/scroll-view-detail-options))))))))))))
+      (if loop?
+        (m/ListWheelChildLoopingListDelegate
+         .children
+         (for [x scroll-values]
+            (date-scroll-item label date-type x)))
+
+        (m/ListWheelChildListDelegate
+         .children
+         (for [x scroll-values]
+           (date-scroll-item label date-type x)))))))))
 
 (defn date-view []
   (f/widget
