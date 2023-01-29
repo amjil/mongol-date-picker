@@ -2,8 +2,9 @@
   (:require ["package:flutter/material.dart" :as m]
             [cljd.flutter.alpha2 :as f]
             [mongol-date-picker.date-scroll-view :as date-scroll-view]
-            [mongol-date-picker.util.month-dates :as month-date]))
-
+            [mongol-date-picker.util.month-dates :as month-date]
+            [mongol-date-picker.contants :as contants]
+            ))
 
 (defn main []
   (let [now (DateTime/now)
@@ -20,6 +21,7 @@
                             :day (dec day)
                             :years years
                             :months (range 1 13)
+                            ;; :months contants/mn-months
                             :days (range 1 (inc (month-date/dates year month)))})
               :year-controller (m/FixedExtentScrollController .initialItem (dec (count years)))
               :month-controller (m/FixedExtentScrollController .initialItem (dec month))
