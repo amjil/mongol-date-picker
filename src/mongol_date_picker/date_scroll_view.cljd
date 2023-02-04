@@ -85,7 +85,7 @@
          (for [x scroll-values]
            (date-scroll-item label date-type x)))))))))
 
-(defn date-view []
+(defn date-picker-widget []
   (f/widget
    :get [:state m/Theme m/ScaffoldMessenger
          :day-controller]
@@ -176,3 +176,24 @@
                         (-> m/Theme
                             (.of ctx)
                             .-scaffoldBackgroundColor)]))))]))])]))))
+
+(defn date-picker []
+  (let [now (DateTime/now)
+        year (.-year now)
+        month (.-month now)
+        day (.-day now)
+        years (range 1900 (inc (.-year now)))]
+    (f/widget
+     :get [m/Theme]
+     :bind  {:state (atom {:selected-date now
+                           :year (dec (count years))
+                           :month (dec month)
+                           :day (dec day)
+                           :years years
+                           :months (range 1 13)
+                            ;; :months contants/mn-months
+                           :days (range 1 (inc (month-dates/dates year month)))})
+             :year-controller (m/FixedExtentScrollController .initialItem (dec (count years)))
+             :month-controller (m/FixedExtentScrollController .initialItem (dec month))
+             :day-controller (m/FixedExtentScrollController .initialItem (dec day))}
+     (date-picker-widget))))
