@@ -4,11 +4,11 @@
             [cljd.flutter.alpha2 :as f]
             [mongol-date-picker.contants :as constants]
             [mongol-date-picker.options :as options]
-            [mongol-date-picker.util.month-dates :as month-dates]
+            [mongol-date-picker.util.date :as month-dates]
             [mongol-date-picker.date-scroll-view :as date-scroll-view]))
 
 
-(defn date-scroll-item [item]
+(defn scroll-item [item]
   (f/widget
    (m/Container
     .alignment (:alignment options/scroll-view-detail-options)
@@ -20,7 +20,7 @@
       (str item)
       .style (:text-style options/scroll-view-detail-options))))))
 
-(defn date-scroll-view [info state k]
+(defn wheel-scroll [info state k]
   ;; info {:height xxx :on-change (fn [] xxx)
   ;;       :controller xxxx
   ;;       :item-suffix xxx :item-prefix xxx}
@@ -36,8 +36,8 @@
    (m/Container
     .margin (:margin options/scroll-view-detail-options)
     .height (if (number? (:height info))
-              100
-              (:height info))
+              (:height info)
+              100)
     .width (- (-> m/MediaQuery (.of ctx) .-size .-width) 60)
     .child
     (m/RotatedBox
@@ -61,14 +61,14 @@
       (if loop?
         (m/ListWheelChildLoopingListDelegate
          .children
-         (map (fn [itm] (date-scroll-item itm))
+         (map (fn [itm] (scroll-item itm))
               items))
         (m/ListWheelChildListDelegate
          .children
-         (map (fn [itm] (date-scroll-item itm))
+         (map (fn [itm] (scroll-item itm))
               items))))))))
 
-(defn date-picker-widget []
+(defn date-picker []
   (let [now (DateTime/now)
         year (.-year now)
         month (.-month now)
@@ -113,20 +113,17 @@
      (m/Column
       .children
       [(m/Text (str year "-" month "-" day))
-       (date-scroll-view
-        {:controller year-controller :height 100
+       (wheel-scroll
+        {:controller year-controller :height 80
          :on-change on-change}
         state
         :year)
-       (date-scroll-view
-        {:controller month-controller :height 100
+       (wheel-scroll
+        {:controller month-controller :height 40
          :on-change on-change}
         state
         :month)
-       (date-scroll-view
-        {:controller day-controller :height 100}
+       (wheel-scroll
+        {:controller day-controller :height 50}
         state
         :day)]))))
-
-  (defn date-picker []
-    (date-picker-widget))
