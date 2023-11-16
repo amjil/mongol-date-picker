@@ -3,15 +3,13 @@
             ["package:mongol/mongol.dart" :as mgl]
             [cljd.flutter.alpha2 :as f]
             [mongol-date-picker.contants :as constants]
-            [mongol-date-picker.util.options :as options]
+            [mongol-date-picker.options :as options]
             [mongol-date-picker.util.month-dates :as month-dates]
             [mongol-date-picker.date-scroll-view :as date-scroll-view]))
 
 
-(defn date-scroll-item [label date-type x]
+(defn date-scroll-item [item]
   (f/widget
-   :get [:state]
-   :watch [{:keys [year month day]} state]
    (m/Container
     .alignment (:alignment options/scroll-view-detail-options)
     .child
@@ -19,38 +17,27 @@
      .quarterTurns 1
      .child
      (mgl/MongolText
-      (str x label)
-      .style (if
-              (condp = date-type
-                :year (= (nth (:years @state) year) x)
-                :month (= (nth (:months @state) month) x)
-                :day (= (nth (:days @state) day) x)
-                false)
-               (:selected-text-style options/scroll-view-detail-options)
-               (:text-style options/scroll-view-detail-options)))))))
+      (str item)
+      .style (:text-style options/scroll-view-detail-options))))))
 
-(defn date-scroll-view [label date-type]
+(defn date-scroll-view [info state k]
+  ;; info {:height xxx :on-change (fn [] xxx)
+  ;;       :controller xxxx
+  ;;       :item-suffix xxx :item-prefix xxx}
+  ;; k => :year
+  ;; state => {:year {:idx 0 :val nil :list [x1 x2 x3 ...]}}
   (f/widget
-   :get [:state 
-         :year-controller 
-         :month-controller
-         :day-controller 
-         :on-year-changed 
-         :on-month-changed
-         :on-day-changed]
-   :watch [{:keys [year month day]} state]
    :context ctx
-   :let [scroll-values (condp = date-type
-                         :year (:years @state)
-                         :month (:months @state)
-                         :day (:days @state))
-         muximum-count (quot (-> m/MediaQuery (.of ctx) .-size .-width)
+   :let [muximum-count (quot (-> m/MediaQuery (.of ctx) .-size .-width)
                              (:item-extent options/date-picker-options))
          loop? (and (:loop? options/date-picker-options)
-                    (> (count scroll-values) muximum-count))]
+                    (> (count (get-in @state [k :list])) muximum-count))]
    (m/Container
     .margin (:margin options/scroll-view-detail-options)
-    .height 80
+    .height (if (number? (:height info))
+              100
+              (:height info))
+    .width (- (-> m/MediaQuery (.of ctx) .-size .-width) 60)
     .child
     (m/RotatedBox
      .quarterTurns 3
@@ -59,141 +46,86 @@
       m/ListWheelScrollView
       .itemExtent (:item-extent options/date-picker-options)
       .diameterRatio (:diameter-ratio options/date-picker-options)
-      .controller (condp = date-type
-                    :year year-controller
-                    :month month-controller
-                    :day day-controller
-                    ;;default
-                    year-controller)
+      .magnification 1.2
+      .overAndUnderCenterOpacity 0.4
+      .controller (:controller info)
       .physics (m/FixedExtentScrollPhysics)
       .perspective (:perspective options/date-picker-options)
-      .onSelectedItemChanged (condp = date-type
-                               :year on-year-changed
-                               :month on-month-changed
-                               :day on-day-changed
-                               ;;default
-                               on-day-changed)
+      .onSelectedItemChanged (fn [i]
+                               (swap! state assoc-in (conj [] k :idx) i)
+                               (swap! state assoc-in (conj [] k :val) (get (get-in @state [k :list]) i))
+                               (when-not (nil? (:on-change info))
+                                 (:on-change info)))
       .childDelegate
       (if loop?
         (m/ListWheelChildLoopingListDelegate
          .children
-         (for [x scroll-values]
-           (date-scroll-item label date-type x)))
-
+         (map (fn [itm] (date-scroll-item itm))
+              (get-in @state [k :list])))
         (m/ListWheelChildListDelegate
          .children
-         (for [x scroll-values]
-           (date-scroll-item label date-type x)))))))))
+         (map (fn [itm] (date-scroll-item itm))
+              (get-in @state [k :list])))))))))
 
-(defn date-picker-widget []
+(defn date-picker-widget [controllers state]
   (f/widget
-   :get [:state m/Theme m/ScaffoldMessenger
-         :day-controller]
    :context ctx
-   :watch [{:keys [selected-date year month day days]} state]
-   :let [update-days (fn []
-                       (let [days (month-dates/dates
-                                   (nth (:years @state) (:year @state))
-                                   (nth (:months @state) (:month @state)))]
-                         (swap! state assoc :days (range 1 (inc days)))
-                         (when (> (:day @state) (dec days))
-                           (swap! state assoc :day (dec days))
-                           (.jumpToItem day-controller (dec days)))))]
-   :bind {:on-year-changed (fn [i]
-                             (swap! state assoc :year i)
-                             (update-days))
-          :on-month-changed (fn [i]
-                              (swap! state assoc :month i)
-                              (update-days))
-          :on-day-changed (fn [i] (swap! state assoc :day i))}
-   (m/Center
-    .child
-    (m/Column
-     .children
-     [(mgl/MongolText (str (nth (:years @state) (:year @state)) "-"
-                           (if (> 9 (:month @state)) "0") (nth (:months @state) (:month @state)) "-"
-                           (if (> 9 (:day @state)) "0") (nth (:days @state) (:day @state))))
-      (m/Stack
-       .alignment m.Alignment/center
-       .children
-       [(m/Column
-         .children
-         [(date-scroll-view
-           constants/year-suffix
-           :year)
-          (date-scroll-view
-           constants/month-suffix
-           :month)
-          (date-scroll-view
-           ""
-           :day)])
-        (m/IgnorePointer
-         .child
-         (m/Row
-          .mainAxisAlignment m.MainAxisAlignment/center
-          .children
-          [(m/Expanded
-            .child
-            (m/Container
-             .height (-> m/MediaQuery (.of ctx) .-size .-width)
-             .decoration
-             (m/BoxDecoration
-              .gradient
-              (m/LinearGradient
-               .begin (.centerLeft m/Alignment)
-               .end (.centerRight m/Alignment)
-               .colors [(-> m/Theme
-                            (.of ctx)
-                            .-scaffoldBackgroundColor)
-                        (-> m/Theme
-                            (.of ctx)
-                            .-scaffoldBackgroundColor
-                            (.withOpacity 0.7))]))))
-           (m/Container
-            .width 30.0
-            .height (-> m/MediaQuery (.of ctx) .-size .-width)
-            .decoration
-            (m/BoxDecoration .color
-                             (-> m/Colors
-                                 .grey
-                                 (.withOpacity 0.15))
-                             .borderRadius
-                             (.all m/BorderRadius (.circular m/Radius 4))))
-           (m/Expanded
-            .child
-            (m/Container
-             .height (-> m/MediaQuery (.of ctx) .-size .-width)
-             .decoration
-             (m/BoxDecoration
-              .gradient
-              (m/LinearGradient
-               .begin (.centerLeft m/Alignment)
-               .end (.centerRight m/Alignment)
-               .colors [(-> m/Theme
-                            (.of ctx)
-                            .-scaffoldBackgroundColor
-                            (.withOpacity 0.7))
-                        (-> m/Theme
-                            (.of ctx)
-                            .-scaffoldBackgroundColor)]))))]))])]))))
+   :watch [{{year :val} :year
+            {month :val} :month
+            {day :val} :day} state]
+   :bg-watcher ([{{year :val} :year
+                  {month :val} :month} state]
+                (let [days (month-dates/dates year month)
+                      day-index (get-in @state [:day :idx])]
+                  (swap! state assoc-in [:day :list] (range 1 (inc days)))
+                  (when (> day-index (dec days))
+                    (swap! state assoc-in [:day :idx] (dec days))
+                    (swap! state assoc-in [:day :val] (last days)))))
+  ;;  (m/Container 
+  ;;   .height 600)
+  ;;  (m/Center
+  ;;   .child
+     (m/Column
+      .children
+      [(m/Text (str year "-" month "-" day))
+       (date-scroll-view
+        {:controller (:year controllers) :height 100}
+        state
+        :year)
+       (date-scroll-view
+        {:controller (:month controllers) :height 100}
+        state
+        :month)
+       (date-scroll-view
+        {:controller (:day controllers) :height 100}
+        state
+        :day)])))
 
 (defn date-picker []
   (let [now (DateTime/now)
         year (.-year now)
         month (.-month now)
         day (.-day now)
-        years (range 1900 (inc (.-year now)))]
+        years (range (- year 100) (+ year 101))
+        months (range 1 13)
+        days (range 1 (inc (month-dates/dates year month)))
+        
+        year-index (get (into {}
+                              (map-indexed (fn [idx itm] (hash-map itm idx))
+                                           years))
+                        year)
+        month-index (dec month)
+        day-index (dec day)
+        
+        state (atom {:year {:list years :idx year-index :val year}
+                     :month {:list months :idx month-index :val month}
+                     :day {:list days :idx day-index :val day}})
+        ]
     (f/widget
-     :get [m/Theme]
-     :bind  {:state (atom {:selected-date now
-                           :year (dec (count years))
-                           :month (dec month)
-                           :day (dec day)
-                           :years years
-                           :months (range 1 13)
-                            ;; :months contants/mn-months
-                           :days (range 1 (inc (month-dates/dates year month)))})
-             :year-controller (m/FixedExtentScrollController .initialItem (dec (count years)))
-             :month-controller (m/FixedExtentScrollController .initialItem (dec month))
-             :day-controller (m/FixedExtentScrollController .initialItem (dec day))}
-     (date-picker-widget))))
+     :managed [year-controller (m/FixedExtentScrollController .initialItem year-index)
+               month-controller (m/FixedExtentScrollController .initialItem month-index)
+               day-controller (m/FixedExtentScrollController .initialItem day-index)]
+     (date-picker-widget {:year year-controller
+                          :month month-controller
+                          :day day-controller}
+                         state))))

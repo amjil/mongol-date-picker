@@ -41,6 +41,10 @@
    "ᠪᠠᠰᠠᠩ"
    "ᠪᠢᠮᠪᠠ"])
 
+(def days 
+  ["ᠨᠢᠭᠡᠨ"
+   "ᠬᠣᠶᠠᠷ"])
+
 (def year-suffix " ᠣᠨ")
 
 (def month-suffix " ᠰᠠᠷ᠎ᠠ")
