@@ -1,6 +1,6 @@
 (ns mongol-date-picker.main
   (:require ["package:flutter/material.dart" :as m]
-            [mongol-date-picker.date-scroll-view :as date-scroll-view]))
+            [mongol-date-picker.picker :as picker]))
 
 (defn main []
   (m/runApp
@@ -17,5 +17,5 @@
               ;;                 .style (m/TextStyle
               ;;                         .color m.Colors/blue
               ;;                         .fontSize 32.0))))
-            .child (date-scroll-view/date-picker)))
+            .child (picker/datetime-picker)))
     .debugShowCheckedModeBanner false)))

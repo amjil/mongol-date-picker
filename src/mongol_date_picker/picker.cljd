@@ -1,0 +1,161 @@
+(ns mongol-date-picker.picker
+  (:require ["package:flutter/material.dart" :as m]
+            ["package:mongol/mongol.dart" :as mgl]
+            [cljd.flutter.alpha2 :as f]
+            [mongol-date-picker.contants :as constants]
+            [mongol-date-picker.options :as options]
+            [mongol-date-picker.util :as util]
+            [mongol-date-picker.picker :as date-scroll-view]))
+
+
+(defn scroll-item [item]
+  (f/widget
+   (m/Container
+    .alignment (:alignment options/scroll-view-detail-options)
+    .child
+    (m/RotatedBox
+     .quarterTurns 1
+     .child
+     (mgl/MongolText
+      (str item)
+      .style (:text-style options/scroll-view-detail-options))))))
+
+(defn wheel-scroll [info state k]
+  ;; info {:height xxx :on-change (fn [] xxx)
+  ;;       :controller xxxx
+  ;;       :item-suffix xxx :item-prefix xxx}
+  ;; k => :year
+  ;; state => {:year {:idx 0 :val nil :list [x1 x2 x3 ...]}}
+  (f/widget
+   :context ctx
+   :let [muximum-count (quot (-> m/MediaQuery (.of ctx) .-size .-width)
+                             (:item-extent options/date-picker-options))
+         loop? (and (:loop? options/date-picker-options)
+                    (> (count (get-in @state [k :list])) muximum-count))]
+   :watch [{{items :list} k} state]
+   (m/Container
+    .margin (:margin options/scroll-view-detail-options)
+    .height (if (number? (:height info))
+              (:height info)
+              100)
+    .width (- (-> m/MediaQuery (.of ctx) .-size .-width) 60)
+    .child
+    (m/RotatedBox
+     .quarterTurns 3
+     .child
+     (.useDelegate
+      m/ListWheelScrollView
+      .itemExtent (:item-extent options/date-picker-options)
+      .diameterRatio (:diameter-ratio options/date-picker-options)
+      .magnification 1.2
+      .overAndUnderCenterOpacity 0.4
+      .controller (:controller info)
+      .physics (m/FixedExtentScrollPhysics)
+      .perspective (:perspective options/date-picker-options)
+      .onSelectedItemChanged (fn [i]
+                               (swap! state assoc-in [k :idx] i)
+                               (swap! state assoc-in [k :val] (get items i))
+                               (when-not (nil? (:on-change info))
+                                 ((:on-change info))))
+      .childDelegate
+      (if loop?
+        (m/ListWheelChildLoopingListDelegate
+         .children
+         (map (fn [itm] (scroll-item (str itm (if (nil? (:item-suffix info))
+                                                ""
+                                                (:item-suffix info)))))
+              items))
+        (m/ListWheelChildListDelegate
+         .children
+         (map (fn [itm] (scroll-item (str itm (if (nil? (:item-suffix info))
+                                                ""
+                                                (:item-suffix info)))))
+              items))))))))
+
+(defn- datetime-picker-widget [state]
+  (let [on-change (fn []
+                    (let [year- (get-in @state [:year :val])
+                          month- (get-in @state [:month :val])
+                          days (util/dates year- month-)
+                          day-index (get-in @state [:day :idx])]
+                      (swap! state assoc-in [:day :list] (range 1 (inc days)))
+                      (when (> day-index (dec days))
+                        (swap! state assoc-in [:day :idx] (dec days))
+                        (swap! state assoc-in [:day :val] (last days)))))
+        year-index (get-in @state [:year :idx])
+        month-index (get-in @state [:month :idx])
+        day-index (get-in @state [:day :idx])
+        hour-index (get-in @state [:hour :idx])
+        minute-index (get-in @state [:minute :idx])]
+    (f/widget
+     :context ctx
+     :managed [year-controller (m/FixedExtentScrollController .initialItem year-index)
+               month-controller (m/FixedExtentScrollController .initialItem month-index)
+               day-controller (m/FixedExtentScrollController .initialItem day-index)
+               hour-controller (m/FixedExtentScrollController .initialItem hour-index)
+               minute-controller (m/FixedExtentScrollController .initialItem minute-index)]
+     :watch [{{year :val} :year
+              {month :val} :month
+              {day :val} :day
+              {hour :val} :hour
+              {minute :val} :minute} state]
+     (m/Column
+      .children
+      [(m/Text (str year "-" month "-" day " " hour ":" minute))
+       (wheel-scroll
+        {:controller year-controller :height 80
+         :item-suffix "ᠣᠨ ᠤ"
+         :on-change on-change}
+        state :year)
+       (wheel-scroll
+        {:controller month-controller :height 60
+         :item-suffix "ᠰᠠᠷ᠎ᠠ ᠶᠢᠨ"
+         :on-change on-change}
+        state :month)
+       (wheel-scroll
+        {:controller day-controller :height 50
+         :item-suffix "ᠡᠳᠦᠷ"}
+        state :day)
+       (wheel-scroll
+        {:controller hour-controller :height 50
+         :item-suffix "ᠴᠠᠭ"}
+        state :hour)
+       (wheel-scroll
+        {:controller minute-controller :height 50
+         :item-suffix "ᠮᠢᠨᠦᠲ"}
+        state :minute)]))))
+
+(defn datetime-picker []
+  (let [now (DateTime/now)
+        year (.-year now)
+        month (.-month now)
+        day (.-day now)
+        hour (.-hour now)
+        minute (.-minute now)
+        years (range (- year 100) (+ year 101))
+        months (range 1 13)
+        days (range 1 (inc (util/dates year month)))
+        hours (range 0 24)
+        minutes (range 0 60)
+        
+        year-index (get (into {}
+                              (map-indexed (fn [idx itm] (hash-map itm idx))
+                                           years))
+                        year)
+        month-index (dec month)
+        day-index (dec day)
+        hour-index (get (into {}
+                              (map-indexed (fn [idx itm] (hash-map itm idx))
+                                           hours))
+                        hour)
+        minute-index (get (into {}
+                                (map-indexed (fn [idx itm] (hash-map itm idx))
+                                             minutes))
+                          minute)
+        
+        state (atom {:year {:list years :idx year-index :val year}
+                     :month {:list months :idx month-index :val month}
+                     :day {:list days :idx day-index :val day}
+                     :hour {:list hours :idx hour-index :val hour}
+                     :minute {:list minutes :idx minute-index :val minute}})]
+    (datetime-picker-widget state)))

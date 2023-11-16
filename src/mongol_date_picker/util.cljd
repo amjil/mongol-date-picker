@@ -1,4 +1,4 @@
-(ns mongol-date-picker.util.date)
+(ns mongol-date-picker.util)
 
 (defn dates [year month]
   (condp = month
