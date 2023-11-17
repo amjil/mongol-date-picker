@@ -32,7 +32,7 @@
         minute (.-minute now)
         years (range (- year 100) (+ year 101))
         months (range 1 13)
-        days (range 1 (inc (util/dates year month)))
+        days (range 1 (inc (dates year month)))
         hours (range 0 24)
         minutes (range 0 60)
 
