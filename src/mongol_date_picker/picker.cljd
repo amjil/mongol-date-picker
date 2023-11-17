@@ -72,7 +72,7 @@
                                                 (:item-suffix info)))))
               items))))))))
 
-(defn- datetime-picker-widget [state]
+(defn datetime-picker [state]
   (let [on-change (fn []
                     (let [year- (get-in @state [:year :val])
                           month- (get-in @state [:month :val])
@@ -125,7 +125,7 @@
          :item-suffix "ᠮᠢᠨᠦᠲ"}
         state :minute)]))))
 
-(defn datetime-picker []
+(defn datetime-picker- []
   (let [now (DateTime/now)
         year (.-year now)
         month (.-month now)
@@ -158,4 +158,4 @@
                      :day {:list days :idx day-index :val day}
                      :hour {:list hours :idx hour-index :val hour}
                      :minute {:list minutes :idx minute-index :val minute}})]
-    (datetime-picker-widget state)))
+    (datetime-picker state)))
