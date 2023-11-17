@@ -94,14 +94,14 @@
                day-controller (m/FixedExtentScrollController .initialItem day-index)
                hour-controller (m/FixedExtentScrollController .initialItem hour-index)
                minute-controller (m/FixedExtentScrollController .initialItem minute-index)]
-     :watch [{{year :val} :year
-              {month :val} :month
-              {day :val} :day
-              {hour :val} :hour
-              {minute :val} :minute} state]
+    ;;  :watch [{{year :val} :year
+    ;;           {month :val} :month
+    ;;           {day :val} :day
+    ;;           {hour :val} :hour
+    ;;           {minute :val} :minute} state]
      (m/Column
       .children
-      [(m/Text (str year "-" month "-" day " " hour ":" minute))
+      [;(m/Text (str year "-" month "-" day " " hour ":" minute))
        (wheel-scroll
         {:controller year-controller :height 80
          :item-suffix "ᠣᠨ ᠤ"
