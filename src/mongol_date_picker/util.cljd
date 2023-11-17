@@ -22,3 +22,38 @@
     12 31
     ;; The function's default value
     30))
+    
+(defn default-state []
+  (let [now (DateTime/now)
+        year (.-year now)
+        month (.-month now)
+        day (.-day now)
+        hour (.-hour now)
+        minute (.-minute now)
+        years (range (- year 100) (+ year 101))
+        months (range 1 13)
+        days (range 1 (inc (util/dates year month)))
+        hours (range 0 24)
+        minutes (range 0 60)
+
+        year-index (get (into {}
+                              (map-indexed (fn [idx itm] (hash-map itm idx))
+                                           years))
+                        year)
+        month-index (dec month)
+        day-index (dec day)
+        hour-index (get (into {}
+                              (map-indexed (fn [idx itm] (hash-map itm idx))
+                                           hours))
+                        hour)
+        minute-index (get (into {}
+                                (map-indexed (fn [idx itm] (hash-map itm idx))
+                                             minutes))
+                          minute)
+
+        state (atom {:year {:list years :idx year-index :val year}
+                     :month {:list months :idx month-index :val month}
+                     :day {:list days :idx day-index :val day}
+                     :hour {:list hours :idx hour-index :val hour}
+                     :minute {:list minutes :idx minute-index :val minute}})]
+    state))
