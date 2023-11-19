@@ -86,7 +86,8 @@
         month-index (get-in @state [:month :idx])
         day-index (get-in @state [:day :idx])
         hour-index (get-in @state [:hour :idx])
-        minute-index (get-in @state [:minute :idx])]
+        minute-index (get-in @state [:minute :idx])
+        enabled-keys (get @state :keys)]
     (f/widget
      :context ctx
      :managed [year-controller (m/FixedExtentScrollController .initialItem year-index)
@@ -102,29 +103,45 @@
      (m/Column
       .children
       [;(m/Text (str year "-" month "-" day " " hour ":" minute))
-       (wheel-scroll
-        {:controller year-controller :height 80
-         :item-suffix "ᠣᠨ ᠤ"
-         :on-change on-change}
-        state :year)
-       (wheel-scroll
-        {:controller month-controller :height 60
-         :item-suffix "ᠰᠠᠷ᠎ᠠ ᠶᠢᠨ"
-         :on-change on-change}
-        state :month)
-       (wheel-scroll
-        {:controller day-controller :height 50
-         :item-suffix "ᠡᠳᠦᠷ"}
-        state :day)
-       (wheel-scroll
-        {:controller hour-controller :height 50
-         :item-suffix "ᠴᠠᠭ"}
-        state :hour)
-       (wheel-scroll
-        {:controller minute-controller :height 50
-         :item-suffix "ᠮᠢᠨᠦᠲ"}
-        state :minute)]))))
+       (if (or (nil? enabled-keys)
+                 (some #{:year} enabled-keys))
+         (wheel-scroll
+          {:controller year-controller :height 80
+           :item-suffix "ᠣᠨ ᠤ"
+           :on-change on-change}
+          state :year)
+         (m/SizedBox))
+       (if (or (nil? enabled-keys)
+                 (some #{:month} enabled-keys))
+         (wheel-scroll
+          {:controller month-controller :height 60
+           :item-suffix "ᠰᠠᠷ᠎ᠠ ᠶᠢᠨ"
+           :on-change on-change}
+          state :month)
+         (m/SizedBox))
+       (if (or (nil? enabled-keys)
+                 (some #{:day} enabled-keys))
+         (wheel-scroll
+          {:controller day-controller :height 50
+           :item-suffix "ᠡᠳᠦᠷ"}
+          state :day)
+         (m/SizedBox))
+       (if (or (nil? enabled-keys)
+                 (some #{:hour} enabled-keys))
+         (wheel-scroll
+          {:controller hour-controller :height 50
+           :item-suffix "ᠴᠠᠭ"}
+          state :hour)
+         (m/SizedBox))
+       (if (or (nil? enabled-keys)
+                 (some #{:minute} enabled-keys))
+         (wheel-scroll
+          {:controller minute-controller :height 50
+           :item-suffix "ᠮᠢᠨᠦᠲ"}
+          state :minute)
+         (m/SizedBox))]))))
 
 (defn datetime-picker- []
-  (let [state (util/default-state)] 
+  (let [state (util/default-state)]
+    ;; (swap! state assoc :keys [:year :month])
     (datetime-picker state)))
