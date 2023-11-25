@@ -23,8 +23,10 @@
     ;; The function's default value
     30))
     
-(defn default-state []
-  (let [now (DateTime/now)
+(defn default-state [d]
+  (let [now (if (nil? d)
+              (DateTime/now)
+              d)
         year (.-year now)
         month (.-month now)
         day (.-day now)
