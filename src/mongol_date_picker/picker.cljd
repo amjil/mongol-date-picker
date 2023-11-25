@@ -142,6 +142,6 @@
          (m/SizedBox))]))))
 
 (defn datetime-picker- []
-  (let [state (util/default-state)]
+  (let [state (util/default-state nil)]
     ;; (swap! state assoc :keys [:year :month])
     (datetime-picker state)))
