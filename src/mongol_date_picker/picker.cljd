@@ -1,7 +1,7 @@
 (ns mongol-date-picker.picker
   (:require ["package:flutter/material.dart" :as m]
             ["package:mongol/mongol.dart" :as mgl]
-            [cljd.flutter.alpha2 :as f]
+            [cljd.flutter :as f]
             [mongol-date-picker.contants :as constants]
             [mongol-date-picker.options :as options]
             [mongol-date-picker.util :as util]
