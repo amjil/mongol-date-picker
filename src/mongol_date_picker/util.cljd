@@ -24,7 +24,8 @@
     30))
     
 (defn default-state [d]
-  (let [now (if (nil? d)
+  (let [^DateTime
+        now (if (nil? d)
               (DateTime/now)
               d)
         year (.-year now)
