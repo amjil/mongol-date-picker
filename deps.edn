@@ -2,7 +2,7 @@
  :deps {
         tensegritics/clojuredart
         {:git/url "https://github.com/tensegritics/ClojureDart.git"
-         :sha "75665e2018b5c373b2e90d2299579fec7f94b3db"}}
+         :sha "9385be3c88ab6593350fdda50d86af985224971b"}}
  :aliases {:cljd {:main-opts ["-m" "cljd.build"]}}
  :cljd/opts {:kind :flutter
              :main mongol-date-picker.main}}
