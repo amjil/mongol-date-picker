@@ -10,8 +10,10 @@
 (defn- wheel-scroll
   "Generic wheel scroll component"
   [{:keys [items suffix on-change options controller]}]
-  (let [digit-type (:digit-type options)]
+  (let [digit-type (:digit-type options)
+        base-text-style (:text-style options)]
     (f/widget
+     :get {{{:flds [onSurface]} .-colorScheme} m/Theme}
      (m/SizedBox .height (or (:item-height options) 80.0))
      (m/RotatedBox .quarterTurns 1)
      (m/Stack
@@ -37,7 +39,10 @@
                         .builder (fn [_ idx]
                                    (m/Center
                                     .child (m/Text (str (util/format-digit (nth items idx) digit-type) suffix)
-                                                   .style (:text-style options))))))]))))
+                                                   .style (if base-text-style
+                                                            (-> base-text-style
+                                                                (.copyWith .color onSurface))
+                                                            (m/TextStyle .fontSize 16.0 .color onSurface)))))))]))))
 
 (defn mongol-date-picker
   "Date picker: year, month, day"
@@ -149,8 +154,8 @@
                                   :suffix " ᠮᠢᠨᠦᠲ" :options options
                                   :on-change #(do (swap! state assoc :mi %) (notify))})])))]))))
 
-(defn show-picker [ctx on-confirm & {:keys [initial-date show-date show-time options]
-                                     :or {show-date true show-time true options opts/default-options}}]
+(defn show-picker [ctx on-confirm & {:keys [initial-date show-date show-time options show-handle?]
+                                     :or {show-date true show-time true options opts/default-options show-handle? true}}]
   (m/showModalBottomSheet
    .context ctx
    .isScrollControlled true
@@ -162,70 +167,96 @@
                     show-mode-switch (and show-date show-time)]
                 (f/widget
                  :watch [vm view-mode]
+                 :get {{{:flds [surface onSurface onSurfaceVariant primary outline]} .-colorScheme
+                        {:flds [titleSmall labelMedium]} .-textTheme} m/Theme}
                  (m/Container
                   .height 400
                   .padding (m/EdgeInsets.all 16)
-                  .child (m/Row ; Outermost Row: left side is [title + picker] area, right side is [confirm/cancel buttons] area
+                  .decoration (m/BoxDecoration
+                               .color surface
+                               .borderRadius (m.BorderRadius/vertical .top (m.Radius/circular 20)))
+                  .child (m/Column
                           .children
-                          [(m/Expanded
-                            .child (m/Row
-                                    .crossAxisAlignment m.CrossAxisAlignment/start
-                                    .children
-                                    [(m/Padding
-                                      .padding (m/EdgeInsets.only .right 10)
-                                      .child (mgl/MongolText (cond
-                                                               (and show-date show-time) "ᠰᠠᠷ᠎ᠠ ᠡᠳᠦᠷ ᠴᠠᠭ᠎ᠢ ᠰᠣᠩᠭᠣᠬᠤ" ; "Select date and time"
-                                                               show-date "ᠰᠠᠷ᠎ᠠ ᠡᠳᠦᠷ ᠰᠣᠩᠭᠣᠬᠤ" ; "Select date"
-                                                               :else " ᠴᠠᠭ ᠰᠣᠩᠭᠣᠬᠤ") ; "Select time"
-                                                             .style (m/TextStyle .fontSize 18 .fontWeight m.FontWeight/bold)))
-                                     (m/Expanded
-                                      .child (cond
-                                               (and show-date show-time)
-                                               (if (= vm :date)
-                                                 (mongol-date-picker
-                                                  {:initial-date @temp-date
-                                                   :on-changed #(reset! temp-date (dart:core/DateTime. (.-year %) (.-month %) (.-day %) (.-hour @temp-date) (.-minute @temp-date)))})
-                                                 (mongol-time-picker
-                                                  {:initial-date @temp-date
-                                                   :on-changed #(reset! temp-date (dart:core/DateTime. (.-year @temp-date) (.-month @temp-date) (.-day @temp-date) (.-hour %) (.-minute %)))}))
-                                               show-date
-                                               (mongol-date-picker
-                                                {:initial-date initial
-                                                 :on-changed #(reset! temp-date %)})
-                                               show-time
-                                               (mongol-time-picker
-                                                {:initial-date initial
-                                                 :on-changed #(reset! temp-date %)})))]))
-
-                           (if show-mode-switch
-                             (m/Column
-                              .mainAxisAlignment m.MainAxisAlignment/center
-                              .children
-                              [(mgl/MongolElevatedButton
-                                .style (m.ElevatedButton/styleFrom
-                                        .backgroundColor (if (= vm :date) m.Colors/blue m.Colors/grey))
-                                .onPressed #(reset! view-mode :date)
-                                .child (mgl/MongolText "ᠡᠳᠥᠷ"))
-                               (m/SizedBox .height 12)
-                               (mgl/MongolElevatedButton
-                                .style (m.ElevatedButton/styleFrom
-                                        .backgroundColor (if (= vm :time) m.Colors/blue m.Colors/grey))
-                                .onPressed #(reset! view-mode :time)
-                                .child (mgl/MongolText "ᠴᠠᠭ"))])
-
+                          [(if show-handle?
+                             (m/Container
+                              .width 32.0
+                              .height 4.0
+                              .margin (m/EdgeInsets.symmetric .vertical 16.0)
+                              .decoration (m/BoxDecoration
+                                           .color onSurfaceVariant
+                                           .borderRadius (m.BorderRadius/all (m.Radius/circular 10.0))))
                              (m/SizedBox.shrink))
-                           ;; Right side action bar: vertically arranged toggle buttons (if both date and time are shown), confirm and cancel buttons
-                           (m/Column
-                            .mainAxisAlignment m.MainAxisAlignment/spaceBetween
+                           (m/Row ; Outermost Row: left side is [title + picker] area, right side is [confirm/cancel buttons] area
+                            .crossAxisAlignment m.CrossAxisAlignment/start
                             .children
-                            [(mgl/MongolTextButton
-                              .onPressed (fn [] (on-confirm @temp-date) (-> m/Navigator (.of ctx) .pop)
-                                           nil)
-                              .child (mgl/MongolText "ᠪᠠᠲᠤᠯᠠᠬᠤ" ; "Confirm" (Batlah)
-                                                     .style (m/TextStyle .color m.Colors/blue .fontWeight m.FontWeight/bold)))
+                            [(m/Expanded
+                              .child (m/Row
+                                      .crossAxisAlignment m.CrossAxisAlignment/start
+                                      .children
+                                      [(m/Padding
+                                        .padding (m/EdgeInsets.only .right 10)
+                                        .child (mgl/MongolText (cond
+                                                                 (and show-date show-time) "ᠰᠠᠷ᠎ᠠ ᠡᠳᠦᠷ ᠴᠠᠭ᠎ᠢ ᠰᠣᠩᠭᠣᠬᠤ" ; "Select date and time"
+                                                                 show-date "ᠰᠠᠷ᠎ᠠ ᠡᠳᠦᠷ ᠰᠣᠩᠭᠣᠬᠤ" ; "Select date"
+                                                                 :else " ᠴᠠᠭ ᠰᠣᠩᠭᠣᠬᠤ") ; "Select time"
+                                                               .style titleSmall))
+                                       (m/Expanded
+                                        .child (cond
+                                                 (and show-date show-time)
+                                                 (if (= vm :date)
+                                                   (mongol-date-picker
+                                                    {:initial-date @temp-date
+                                                     :on-changed #(reset! temp-date (dart:core/DateTime. (.-year %) (.-month %) (.-day %) (.-hour @temp-date) (.-minute @temp-date)))
+                                                     :options options})
+                                                   (mongol-time-picker
+                                                    {:initial-date @temp-date
+                                                     :on-changed #(reset! temp-date (dart:core/DateTime. (.-year @temp-date) (.-month @temp-date) (.-day @temp-date) (.-hour %) (.-minute %)))
+                                                     :options options}))
+                                                 show-date
+                                                 (mongol-date-picker
+                                                  {:initial-date initial
+                                                   :on-changed #(reset! temp-date %)
+                                                   :options options})
+                                                 show-time
+                                                 (mongol-time-picker
+                                                  {:initial-date initial
+                                                   :on-changed #(reset! temp-date %)
+                                                   :options options})))]))
 
-                             (mgl/MongolTextButton
-                              .onPressed (fn [] (-> m/Navigator (.of ctx) .pop)
-                                           nil)
-                              .child (mgl/MongolText "ᠬᠠᠰᠤᠬᠤ" ; "Cancel" (Hasah)
-                                                     .style (m/TextStyle .color m.Colors/grey)))])])))))))
+                             (if show-mode-switch
+                               (m/Column
+                                .mainAxisAlignment m.MainAxisAlignment/center
+                                .children
+                                [(mgl/MongolElevatedButton
+                                  .style (m.ElevatedButton/styleFrom
+                                          .backgroundColor (if (= vm :date) primary outline)
+                                          .foregroundColor (if (= vm :date) onSurface onSurfaceVariant))
+                                  .onPressed #(reset! view-mode :date)
+                                  .child (mgl/MongolText "ᠡᠳᠥᠷ"
+                                                         .style labelMedium))
+                                 (m/SizedBox .height 12)
+                                 (mgl/MongolElevatedButton
+                                  .style (m.ElevatedButton/styleFrom
+                                          .backgroundColor (if (= vm :time) primary outline)
+                                          .foregroundColor (if (= vm :time) onSurface onSurfaceVariant))
+                                  .onPressed #(reset! view-mode :time)
+                                  .child (mgl/MongolText "ᠴᠠᠭ"
+                                                         .style labelMedium))])
+
+                               (m/SizedBox.shrink))
+                             ;; Right side action bar: vertically arranged toggle buttons (if both date and time are shown), confirm and cancel buttons
+                             (m/Column
+                              .mainAxisSize m.MainAxisSize/max
+                              .mainAxisAlignment m.MainAxisAlignment/spaceBetween
+                              .children
+                              [(mgl/MongolTextButton
+                                .onPressed (fn [] (on-confirm @temp-date) (-> m/Navigator (.of ctx) .pop)
+                                             nil)
+                                .child (mgl/MongolText "ᠪᠠᠲᠤᠯᠠᠬᠤ" ; "Confirm" (Batlah)
+                                                       .style (m/TextStyle .color primary .fontWeight m.FontWeight/bold)))
+                               (m/SizedBox .height 20)
+                               (mgl/MongolTextButton
+                                .onPressed (fn [] (-> m/Navigator (.of ctx) .pop)
+                                             nil)
+                                .child (mgl/MongolText "ᠬᠠᠰᠤᠬᠤ" ; "Cancel" (Hasah)
+                                                       .style (m/TextStyle .color onSurfaceVariant)))])])])))))))

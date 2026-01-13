@@ -9,6 +9,7 @@
    (m/MaterialApp
     .title "Welcome to Flutter"
     .theme (m/ThemeData .primarySwatch m.Colors/blue
+                        .brightness m.Brightness/dark
                         .fontFamily "OyunQaganTig")
     .home (f/widget
            :context ctx
@@ -35,7 +36,7 @@
                  .onPressed (fn []
                               (picker/show-picker ctx
                                                   (fn [date]
-                                                    (reset! selected-date date)) 
+                                                    (reset! selected-date date))
                                                   ;; :show-date true
                                                   ;; :show-time false
                                                   :initial-date @selected-date)
