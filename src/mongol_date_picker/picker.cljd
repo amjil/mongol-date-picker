@@ -115,7 +115,6 @@
                       safe-d (if (> d max-d) max-d d)]
                   (when on-changed
                     (on-changed (dart:core/DateTime. y mo safe-d h mi))))]
-    (dart:core/print (str "hour=" (.-hour d)))
     (f/widget
      :managed [y-c (m/FixedExtentScrollController .initialItem year-index)
                mo-c (m/FixedExtentScrollController .initialItem (dec (.-month d)))
