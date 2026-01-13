@@ -49,6 +49,7 @@ Displays a modal bottom sheet with date/time picker.
 - `initial-date` (optional): Initial `DateTime` value
 - `show-date` (optional, default: `true`): Whether to show date picker
 - `show-time` (optional, default: `true`): Whether to show time picker
+- `show-handle?` (optional, default: `true`): Whether to show the drag handle at the top of the modal
 - `options` (optional): Custom styling and behavior options
 
 ## Configuration Options
