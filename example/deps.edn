@@ -1,0 +1,10 @@
+{:paths ["src"] ; where your cljd files are
+ :deps {tensegritics/clojuredart
+        {:git/url "https://github.com/tensegritics/ClojureDart.git"
+         :sha "eb908b9131c93bb844396ea1cd983460fe7e8b2a"}
+        amjil/m-date-picker
+        {:local/root "../"}}
+
+ :aliases {:cljd {:main-opts ["-m" "cljd.build"]}}
+ :cljd/opts {:kind :flutter
+             :main picker-test.main}}

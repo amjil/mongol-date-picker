@@ -1,0 +1,44 @@
+(ns picker-test.main
+  (:require
+   ["package:flutter/material.dart" :as m]
+   [cljd.flutter :as f]
+   [mongol-date-picker.picker :as picker]))
+
+(defn main []
+  (m/runApp
+   (m/MaterialApp
+    .title "Welcome to Flutter"
+    .theme (m/ThemeData .primarySwatch m.Colors/blue
+                        .fontFamily "OyunQaganTig")
+    .home (f/widget
+           :context ctx
+           :managed [selected-date (atom nil)]
+           (m/Scaffold
+            .appBar (m/AppBar
+                     .title (m/Text "Scroll Date Picker Example"))
+            .body
+            (m/SafeArea
+             .child
+             (m/Center
+              .child
+              (m/Column
+               .mainAxisAlignment m.MainAxisAlignment/center
+               .children
+               [(f/widget
+                 :watch [sd selected-date]
+                 (m/Text (if sd
+                           (str "Selected date: " (-> sd .-year) "-" (-> sd .-month) "-" (-> sd .-day) " " (-> sd .-hour) ":" (-> sd .-minute))
+                           "No date selected")
+                         .style (m/TextStyle .fontSize 16)))
+                (m/SizedBox .height 20)
+                (m/ElevatedButton
+                 .onPressed (fn []
+                              (picker/show-picker ctx
+                                                  (fn [date]
+                                                    (reset! selected-date date)) 
+                                                  ;; :show-date true
+                                                  ;; :show-time false
+                                                  :initial-date @selected-date)
+                              nil)
+                 .child (m/Text "Select date and time"))])))))
+    .debugShowCheckedModeBanner false)))

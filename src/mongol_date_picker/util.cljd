@@ -1,62 +1,16 @@
 (ns mongol-date-picker.util)
 
+(defn format-digit [n digit-type]
+  (let [mongol-digits ["᠐" "᠑" "᠒" "᠓" "᠔" "᠕" "᠖" "᠗" "᠘" "᠙"]]
+    (if (= digit-type :mongol)
+      (->> (str n)
+           (map #(let [digit (int (.codeUnitAt % 0))]
+                   (nth mongol-digits (- digit 48))))
+           (apply str))
+      (str n))))
+
 (defn dates [year month]
   (condp = month
-    1 31
-    ;; (year % 4 == 0 && year % 100 != 0) || year % 400 == 0 ? 29 : 28;
-    2 (if (or
-           (and (zero? (rem year 4))
-                (pos? (rem year 100)))
-           (zero? (rem year 400)))
-        29
-        28)
-    3 31
-    4 30
-    5 31
-    6 30
-    7 31
-    8 31
-    9 30
-    10 31
-    11 30
-    12 31
-    ;; The function's default value
-    30))
-    
-(defn default-state [d]
-  (let [^DateTime
-        now (if (nil? d)
-              (DateTime/now)
-              d)
-        year (.-year now)
-        month (.-month now)
-        day (.-day now)
-        hour (.-hour now)
-        minute (.-minute now)
-        years (range (- year 100) (+ year 101))
-        months (range 1 13)
-        days (range 1 (inc (dates year month)))
-        hours (range 0 24)
-        minutes (range 0 60)
-
-        year-index (get (into {}
-                              (map-indexed (fn [idx itm] (hash-map itm idx))
-                                           years))
-                        year)
-        month-index (dec month)
-        day-index (dec day)
-        hour-index (get (into {}
-                              (map-indexed (fn [idx itm] (hash-map itm idx))
-                                           hours))
-                        hour)
-        minute-index (get (into {}
-                                (map-indexed (fn [idx itm] (hash-map itm idx))
-                                             minutes))
-                          minute)
-
-        state (atom {:year {:list years :idx year-index :val year}
-                     :month {:list months :idx month-index :val month}
-                     :day {:list days :idx day-index :val day}
-                     :hour {:list hours :idx hour-index :val hour}
-                     :minute {:list minutes :idx minute-index :val minute}})]
-    state))
+    2 (if (or (and (zero? (rem year 4)) (pos? (rem year 100))) (zero? (rem year 400))) 29 28)
+    4 30 6 30 9 30 11 30
+    31))

@@ -1,147 +1,231 @@
 (ns mongol-date-picker.picker
   (:require ["package:flutter/material.dart" :as m]
+            ["package:flutter/services.dart" :as s]
             ["package:mongol/mongol.dart" :as mgl]
             [cljd.flutter :as f]
-            [mongol-date-picker.contants :as constants]
-            [mongol-date-picker.options :as options]
             [mongol-date-picker.util :as util]
-            [mongol-date-picker.picker :as date-scroll-view]))
+            [mongol-date-picker.contants :as contants]
+            [mongol-date-picker.options :as opts]))
 
-
-(defn scroll-item [item]
-  (f/widget
-   (m/Container
-    .alignment (:alignment options/scroll-view-detail-options)
-    .child
-    (m/RotatedBox
-     .quarterTurns 1
-     .child
-     (mgl/MongolText
-      (str item)
-      .style (:text-style options/scroll-view-detail-options))))))
-
-(defn wheel-scroll [info state k]
-  ;; info {:height xxx :on-change (fn [] xxx)
-  ;;       :controller xxxx
-  ;;       :item-suffix xxx :item-prefix xxx}
-  ;; k => :year
-  ;; state => {:year {:idx 0 :val nil :list [x1 x2 x3 ...]}}
-  (f/widget
-   :context ctx
-   :let [muximum-count (quot (-> m/MediaQuery (.of ctx) .-size .-width)
-                             (:item-extent options/date-picker-options))
-         loop? (and (:loop? options/date-picker-options)
-                    (> (count (get-in @state [k :list])) muximum-count))]
-   :watch [{{items :list} k} state]
-   (m/Container
-    .margin (:margin options/scroll-view-detail-options)
-    .height (if (number? (:height info))
-              (:height info)
-              100)
-    .width (- (-> m/MediaQuery (.of ctx) .-size .-width) 60)
-    .child
-    (m/RotatedBox
-     .quarterTurns 3
-     .child
-     (.useDelegate
-      m/ListWheelScrollView
-      .itemExtent (:item-extent options/date-picker-options)
-      .diameterRatio (:diameter-ratio options/date-picker-options)
-      .magnification 1.2
-      .overAndUnderCenterOpacity 0.4
-      .controller (:controller info)
-      .physics (m/FixedExtentScrollPhysics)
-      .perspective (:perspective options/date-picker-options)
-      .onSelectedItemChanged (fn [i]
-                               (swap! state assoc-in [k :idx] i)
-                               (swap! state assoc-in [k :val] (get items i))
-                               (when-not (nil? (:on-change info))
-                                 ((:on-change info))))
-      .childDelegate
-      (if loop?
-        (m/ListWheelChildLoopingListDelegate
-         .children
-         (map (fn [itm] (scroll-item (str itm (if (nil? (:item-suffix info))
-                                                ""
-                                                (:item-suffix info)))))
-              items))
-        (m/ListWheelChildListDelegate
-         .children
-         (map (fn [itm] (scroll-item (str itm (if (nil? (:item-suffix info))
-                                                ""
-                                                (:item-suffix info)))))
-              items))))))))
-
-(defn datetime-picker [state]
-  (let [on-change (fn []
-                    (let [year- (get-in @state [:year :val])
-                          month- (get-in @state [:month :val])
-                          days (util/dates year- month-)
-                          day-index (get-in @state [:day :idx])]
-                      (swap! state assoc-in [:day :list] (range 1 (inc days)))
-                      (when (> day-index (dec days))
-                        (swap! state assoc-in [:day :idx] (dec days))
-                        (swap! state assoc-in [:day :val] (last days)))))
-        year-index (get-in @state [:year :idx])
-        month-index (get-in @state [:month :idx])
-        day-index (get-in @state [:day :idx])
-        hour-index (get-in @state [:hour :idx])
-        minute-index (get-in @state [:minute :idx])
-        enabled-keys (get @state :keys)]
+(defn- wheel-scroll
+  "Generic wheel scroll component"
+  [{:keys [items suffix on-change options controller]}]
+  (let [digit-type (:digit-type options)]
     (f/widget
-     :context ctx
-     :managed [year-controller (m/FixedExtentScrollController .initialItem year-index)
-               month-controller (m/FixedExtentScrollController .initialItem month-index)
-               day-controller (m/FixedExtentScrollController .initialItem day-index)
-               hour-controller (m/FixedExtentScrollController .initialItem hour-index)
-               minute-controller (m/FixedExtentScrollController .initialItem minute-index)]
-    ;;  :watch [{{year :val} :year
-    ;;           {month :val} :month
-    ;;           {day :val} :day
-    ;;           {hour :val} :hour
-    ;;           {minute :val} :minute} state]
-     (m/Column
+     (m/SizedBox .height (or (:item-height options) 80.0))
+     (m/RotatedBox .quarterTurns 1)
+     (m/Stack
+      .alignment m.Alignment/center
       .children
-      [;(m/Text (str year "-" month "-" day " " hour ":" minute))
-       (if (or (nil? enabled-keys)
-                 (some #{:year} enabled-keys))
-         (wheel-scroll
-          {:controller year-controller :height 80
-           :item-suffix "ᠣᠨ ᠤ"
-           :on-change on-change}
-          state :year)
-         (m/SizedBox))
-       (if (or (nil? enabled-keys)
-                 (some #{:month} enabled-keys))
-         (wheel-scroll
-          {:controller month-controller :height 60
-           :item-suffix "ᠰᠠᠷ᠎ᠠ ᠶᠢᠨ"
-           :on-change on-change}
-          state :month)
-         (m/SizedBox))
-       (if (or (nil? enabled-keys)
-                 (some #{:day} enabled-keys))
-         (wheel-scroll
-          {:controller day-controller :height 50
-           :item-suffix "ᠡᠳᠦᠷ"}
-          state :day)
-         (m/SizedBox))
-       (if (or (nil? enabled-keys)
-                 (some #{:hour} enabled-keys))
-         (wheel-scroll
-          {:controller hour-controller :height 50
-           :item-suffix "ᠴᠠᠭ"}
-          state :hour)
-         (m/SizedBox))
-       (if (or (nil? enabled-keys)
-                 (some #{:minute} enabled-keys))
-         (wheel-scroll
-          {:controller minute-controller :height 50
-           :item-suffix "ᠮᠢᠨᠦᠲ"}
-          state :minute)
-         (m/SizedBox))]))))
+      [(m/Container ; Center highlight bar
+        .height (:item-extent options)
+        .margin (m/EdgeInsets.symmetric .horizontal 4)
+        .decoration (m/BoxDecoration .color (:selected-color options)
+                                     .borderRadius (m.BorderRadius/circular 8)))
+       (m/ListWheelScrollView.useDelegate
+        .itemExtent (:item-extent options)
+        .diameterRatio (:diameter-ratio options)
+        .perspective (:perspective options)
+        .magnification (:magnification options)
+        .controller controller
+        .physics (m/FixedExtentScrollPhysics)
+        .onSelectedItemChanged (fn [idx]
+                                 (when (:use-haptics options) (s/HapticFeedback.vibrate))
+                                 (on-change idx))
+        .childDelegate (m/ListWheelChildBuilderDelegate
+                        .childCount (count items)
+                        .builder (fn [_ idx]
+                                   (m/Center
+                                    .child (m/Text (str (util/format-digit (nth items idx) digit-type) suffix)
+                                                   .style (:text-style options))))))]))))
 
-(defn datetime-picker- []
-  (let [state (util/default-state nil)]
-    ;; (swap! state assoc :keys [:year :month])
-    (datetime-picker state)))
+(defn mongol-date-picker
+  "Date picker: year, month, day"
+  [{:keys [initial-date on-changed options]
+    :or {options opts/default-options}}]
+  (let [d (-> (or initial-date (dart:core/DateTime.now)))
+        state (atom {:y (.-year d) :mo (.-month d) :d (.-day d)})
+        year-start (- (.-year d) 100)
+        year-index (- (.-year d) year-start)
+        notify #(let [{:keys [y mo d]} @state
+                      max-d (util/dates y mo)
+                      safe-d (if (> d max-d) max-d d)]
+                  (when on-changed
+                    (on-changed (dart:core/DateTime. y mo safe-d 0 0))))]
+    (f/widget
+     :managed [y-c (m/FixedExtentScrollController .initialItem year-index)
+               mo-c (m/FixedExtentScrollController .initialItem (dec (.-month d)))
+               d-c (m/FixedExtentScrollController .initialItem (dec (.-day d)))]
+     (m/Column ; Date mode: year, month, day arranged vertically
+      .mainAxisAlignment m.MainAxisAlignment/end
+      .mainAxisSize m.MainAxisSize/min
+      .children
+      [(wheel-scroll {:controller y-c :items (range year-start (+ (.-year d) 100))
+                      :suffix contants/year-suffix :options options
+                      :on-change #(do (swap! state assoc :y (+ year-start %)) (notify))})
+       (wheel-scroll {:controller mo-c :items (range 1 13)
+                      :suffix contants/month-suffix :options options
+                      :on-change #(do (swap! state assoc :mo (inc %)) (notify))})
+       (f/widget
+        :watch [s (f/sub state (fn [m] (select-keys m [:y :mo])))]
+        (wheel-scroll {:controller d-c :items (range 1 (inc (util/dates (:y s) (:mo s))))
+                       :suffix contants/day-suffix :options options
+                       :on-change #(do (swap! state assoc :d (inc %)) (notify))}))]))))
+
+(defn mongol-time-picker
+  "Time picker: hour, minute"
+  [{:keys [initial-date on-changed options]
+    :or {options opts/default-options}}]
+  (let [d (-> (or initial-date (dart:core/DateTime.now)))
+        state (atom {:h (.-hour d) :mi (.-minute d)})
+        notify #(let [{:keys [h mi]} @state]
+                  (when on-changed
+                    (on-changed (dart:core/DateTime. 2000 1 1 h mi))))]
+    (f/widget
+     :managed [h-c (m/FixedExtentScrollController .initialItem (.-hour d))
+               mi-c (m/FixedExtentScrollController .initialItem (.-minute d))]
+     (m/Column ; Time mode: hour, minute arranged vertically
+      .mainAxisAlignment m.MainAxisAlignment/center
+      .children
+      [(wheel-scroll {:controller h-c :items (range 0 24)
+                      :suffix " ᠴᠠᠭ" :options options
+                      :on-change #(do (swap! state assoc :h %) (notify))})
+       (m/SizedBox .height 40)
+       (wheel-scroll {:controller mi-c :items (range 0 60)
+                      :suffix " ᠮᠢᠨᠦᠲ" :options options
+                      :on-change #(do (swap! state assoc :mi %) (notify))})]))))
+
+(defn mongol-datetime-picker
+  "Date-time picker: wheel group on left, mode switch on right"
+  [{:keys [initial-date on-changed options]
+    :or {options opts/default-options}}]
+  (let [d (-> (or initial-date (dart:core/DateTime.now)))
+        state (atom {:y (.-year d) :mo (.-month d) :d (.-day d)
+                     :h (.-hour d) :mi (.-minute d)})
+        view-mode (atom :date)
+        year-start (- (.-year d) 100)
+        year-index (- (.-year d) year-start)
+        notify #(let [{:keys [y mo d h mi]} @state
+                      max-d (util/dates y mo)
+                      safe-d (if (> d max-d) max-d d)]
+                  (when on-changed
+                    (on-changed (dart:core/DateTime. y mo safe-d h mi))))]
+    (dart:core/print (str "hour=" (.-hour d)))
+    (f/widget
+     :managed [y-c (m/FixedExtentScrollController .initialItem year-index)
+               mo-c (m/FixedExtentScrollController .initialItem (dec (.-month d)))
+               d-c (m/FixedExtentScrollController .initialItem (dec (.-day d)))
+               h-c (m/FixedExtentScrollController .initialItem (.-hour d))
+               mi-c (m/FixedExtentScrollController .initialItem (.-minute d))]
+     :watch [vm view-mode]
+     (m/Row
+      .children
+      [(m/Expanded
+        .child (if (= vm :date)
+                 (m/Column ; Date mode: year, month, day arranged vertically
+                  .mainAxisAlignment m.MainAxisAlignment/end
+                  .mainAxisSize m.MainAxisSize/min
+                  .children
+                  [(wheel-scroll {:controller y-c :items (range year-start (+ (.-year d) 100))
+                                  :suffix contants/year-suffix :options options
+                                  :on-change #(do (swap! state assoc :y (+ year-start %)) (notify))})
+                   (wheel-scroll {:controller mo-c :items (range 1 13)
+                                  :suffix contants/month-suffix :options options
+                                  :on-change #(do (swap! state assoc :mo (inc %)) (notify))})
+                   (f/widget
+                    :watch [s (f/sub state (fn [m] (select-keys m [:y :mo])))]
+                    (wheel-scroll {:controller d-c :items (range 1 (inc (util/dates (:y s) (:mo s))))
+                                   :suffix contants/day-suffix :options options
+                                   :on-change #(do (swap! state assoc :d (inc %)) (notify))}))])
+
+                 (m/Column ; Time mode: hour, minute arranged vertically
+                  .mainAxisAlignment m.MainAxisAlignment/center
+                  .children
+                  [(wheel-scroll {:controller h-c :items (range 0 24)
+                                  :suffix " ᠴᠠᠭ" :options options
+                                  :on-change #(do (swap! state assoc :h %) (notify))})
+                   (m/SizedBox .height 40)
+                   (wheel-scroll {:controller mi-c :items (range 0 60)
+                                  :suffix " ᠮᠢᠨᠦᠲ" :options options
+                                  :on-change #(do (swap! state assoc :mi %) (notify))})])))]))))
+
+(defn show-picker [ctx on-confirm & {:keys [initial-date show-date show-time options]
+                                     :or {show-date true show-time true options opts/default-options}}]
+  (m/showModalBottomSheet
+   .context ctx
+   .isScrollControlled true
+   .shape (m/RoundedRectangleBorder .borderRadius (m.BorderRadius/vertical .top (m.Radius/circular 20)))
+   .builder (fn [ctx]
+              (let [initial (-> (or initial-date (dart:core/DateTime.now)))
+                    temp-date (atom initial)
+                    view-mode (atom (if (and show-date show-time) :date (if show-date :date :time)))
+                    show-mode-switch (and show-date show-time)]
+                (f/widget
+                 :watch [vm view-mode]
+                 (m/Container
+                  .height 400
+                  .padding (m/EdgeInsets.all 16)
+                  .child (m/Row ; Outermost Row: left side is [title + picker] area, right side is [confirm/cancel buttons] area
+                          .children
+                          [(m/Expanded
+                            .child (m/Row
+                                    .crossAxisAlignment m.CrossAxisAlignment/start
+                                    .children
+                                    [(m/Padding
+                                      .padding (m/EdgeInsets.only .right 10)
+                                      .child (mgl/MongolText (cond
+                                                               (and show-date show-time) "ᠰᠠᠷ᠎ᠠ ᠡᠳᠦᠷ ᠴᠠᠭ᠎ᠢ ᠰᠣᠩᠭᠣᠬᠤ" ; "Select date and time"
+                                                               show-date "ᠰᠠᠷ᠎ᠠ ᠡᠳᠦᠷ ᠰᠣᠩᠭᠣᠬᠤ" ; "Select date"
+                                                               :else " ᠴᠠᠭ ᠰᠣᠩᠭᠣᠬᠤ") ; "Select time"
+                                                             .style (m/TextStyle .fontSize 18 .fontWeight m.FontWeight/bold)))
+                                     (m/Expanded
+                                      .child (cond
+                                               (and show-date show-time)
+                                               (if (= vm :date)
+                                                 (mongol-date-picker
+                                                  {:initial-date @temp-date
+                                                   :on-changed #(reset! temp-date (dart:core/DateTime. (.-year %) (.-month %) (.-day %) (.-hour @temp-date) (.-minute @temp-date)))})
+                                                 (mongol-time-picker
+                                                  {:initial-date @temp-date
+                                                   :on-changed #(reset! temp-date (dart:core/DateTime. (.-year @temp-date) (.-month @temp-date) (.-day @temp-date) (.-hour %) (.-minute %)))}))
+                                               show-date
+                                               (mongol-date-picker
+                                                {:initial-date initial
+                                                 :on-changed #(reset! temp-date %)})
+                                               show-time
+                                               (mongol-time-picker
+                                                {:initial-date initial
+                                                 :on-changed #(reset! temp-date %)})))]))
+
+                           (if show-mode-switch
+                             (m/Column
+                              .mainAxisAlignment m.MainAxisAlignment/center
+                              .children
+                              [(mgl/MongolElevatedButton
+                                .style (m.ElevatedButton/styleFrom
+                                        .backgroundColor (if (= vm :date) m.Colors/blue m.Colors/grey))
+                                .onPressed #(reset! view-mode :date)
+                                .child (mgl/MongolText "ᠡᠳᠥᠷ"))
+                               (m/SizedBox .height 12)
+                               (mgl/MongolElevatedButton
+                                .style (m.ElevatedButton/styleFrom
+                                        .backgroundColor (if (= vm :time) m.Colors/blue m.Colors/grey))
+                                .onPressed #(reset! view-mode :time)
+                                .child (mgl/MongolText "ᠴᠠᠭ"))])
+
+                             (m/SizedBox.shrink))
+                           ;; Right side action bar: vertically arranged toggle buttons (if both date and time are shown), confirm and cancel buttons
+                           (m/Column
+                            .mainAxisAlignment m.MainAxisAlignment/spaceBetween
+                            .children
+                            [(mgl/MongolTextButton
+                              .onPressed (fn [] (on-confirm @temp-date) (-> m/Navigator (.of ctx) .pop)
+                                           nil)
+                              .child (mgl/MongolText "ᠪᠠᠲᠤᠯᠠᠬᠤ" ; "Confirm" (Batlah)
+                                                     .style (m/TextStyle .color m.Colors/blue .fontWeight m.FontWeight/bold)))
+
+                             (mgl/MongolTextButton
+                              .onPressed (fn [] (-> m/Navigator (.of ctx) .pop)
+                                           nil)
+                              .child (mgl/MongolText "ᠬᠠᠰᠤᠬᠤ" ; "Cancel" (Hasah)
+                                                     .style (m/TextStyle .color m.Colors/grey)))])])))))))
